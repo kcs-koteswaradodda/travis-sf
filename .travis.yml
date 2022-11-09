@@ -15,7 +15,6 @@ before_install:
   - docker system info
 
 script:
-  - mvn -e --batch-mode verify assembly:single
   - export REPO=us-west1-docker.pkg.dev/kcs-ace2/travis-sf
   - docker build -f docker/Dockerfile.travis-sf -t $REPO/travis-sf:build-$TRAVIS_BUILD_NUMBER -t $REPO/travis-sf:latest .
   - docker build -f docker/Dockerfile.travis-sf-data-extractor -t $REPO/travis-sf-data-extractor:build-$TRAVIS_BUILD_NUMBER -t $REPO/travis-sf-data-extractor:latest .
