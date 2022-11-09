@@ -1,0 +1,18 @@
+# Dockerfile to create image with cron services
+FROM ubuntu:latest
+
+# Add the script to the Docker Image
+ADD docker/log_cleaner.sh /root/log_cleaner.sh
+
+# Give execution rights on the cron scripts
+RUN chmod 777 /root/log_cleaner.sh
+
+#Install Cron
+RUN apt-get update
+RUN apt-get -y install cron
+
+# Add the cron job
+RUN crontab -l | { cat; echo "*/2 * * * * bash /root/log_cleaner.sh"; }  | crontab -
+
+# Run the command on container startup
+CMD ["cron", "-f"]
