@@ -1,35 +1,15 @@
-language: java
-install: skip
-jdk:
-  - openjdk8
-
-before_install:
-  # Ensure the settings we want to use are in place before running Maven commands
-  - cp ./travis/maven-settings.xml $HOME/.m2/settings.xml
-  # Add GCR as a Docker mirror because of Docker Hub quotas causing build failures
-  - tmpdaemon=$(mktemp)
-  - sudo jq '."registry-mirrors" += ["https://mirror.gcr.io"]' /etc/docker/daemon.json > $tmpdaemon
-  - sudo mv $tmpdaemon /etc/docker/daemon.json
-  - sudo systemctl daemon-reload
-  - sudo systemctl restart docker
-  - docker system info
-
-script:
-  - export REPO=us-west1-docker.pkg.dev/kcs-ace2/travis-sf
-  - docker build -f docker/Dockerfile.travis-sf -t $REPO/travis-sf:build-$TRAVIS_BUILD_NUMBER -t $REPO/travis-sf:latest .
-  - docker build -f docker/Dockerfile.travis-sf-data-extractor -t $REPO/travis-sf-data-extractor:build-$TRAVIS_BUILD_NUMBER -t $REPO/travis-sf-data-extractor:latest .
-
-after_failure:
-  - echo "\n=== SUREFIRE REPORTS ===\n"
-  - for F in target/surefire-reports/*.txt; do echo $F; cat $F; echo; done
-
-after_success:
-  # Only push Docker images for regular (not cron) master builds (the credentials are only available on master)
-  - if [ -n "$ARTIFACT_REGISTRY_KEY" ]; then
-      echo "$ARTIFACT_REGISTRY_KEY" | docker login -u _json_key_base64 --password-stdin https://us-west1-docker.pkg.dev;
-      docker push $REPO/travis-sf:build-$TRAVIS_BUILD_NUMBER;
-      docker push $REPO/travis-sf:latest;
-      docker push $REPO/travis-sf-data-extractor:build-$TRAVIS_BUILD_NUMBER;
-      docker push $REPO/travis-sf-data-extractor:latest;
-    fi
-  - npm install -g snyk
+language: minimal
+services:
+    - docker
+stages:
+  - name: deploy
+    if: branch == main AND type = push
+jobs:
+  include:
+    - stage: deploy
+      script:
+        - echo "$ARTIFACT_REGISTRY_KEY" | docker login -u _json_key_base64 --password-stdin https://us-west1-docker.pkg.dev
+        - export REPO=us-west1-docker.pkg.dev/kcs-biarca-infra1/travis-sf/travis-image
+        - docker build -f Dockerfile -t $REPO:build-$TRAVIS_BUILD_NUMBER -t $REPO:latest .
+        - docker push $REPO:build-$TRAVIS_BUILD_NUMBER
+        - docker push $REPO:latest
