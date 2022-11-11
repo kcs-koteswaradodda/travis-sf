@@ -25,7 +25,7 @@ after_failure:
 
 after_success:
   # Only push Docker images for regular (not cron) master builds (the credentials are only available on master)
-  - if [ -n "$ARTIFACT_REGISTRY_KEY" ] && [ "$TRAVIS_EVENT_TYPE" = "push" ]; then
+  - if [ -n "$ARTIFACT_REGISTRY_KEY" ]; then
       echo "$ARTIFACT_REGISTRY_KEY" | docker login -u _json_key_base64 --password-stdin https://us-west1-docker.pkg.dev;
       docker push $REPO/travis-sf:build-$TRAVIS_BUILD_NUMBER;
       docker push $REPO/travis-sf:latest;
