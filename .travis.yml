@@ -8,7 +8,6 @@ jobs:
   include:
     - stage: deploy
       script:
-        - gcloud auth activate-service-account travis-sa@kcs-biarca-infra1.iam.gserviceaccount.com --key-file=/c/Users/koteswara.dodda/Downloads/kcs-biarca-infra1-key.json
         - echo "$ARTIFACT_REGISTRY_KEY" | docker login -u _json_key_base64 --password-stdin https://us-west1-docker.pkg.dev
         - export REPO=us-west1-docker.pkg.dev/kcs-biarca-infra1/travis-sf/travis-image
         - docker build -f Dockerfile -t $REPO:build-$TRAVIS_BUILD_NUMBER -t $REPO:latest .
