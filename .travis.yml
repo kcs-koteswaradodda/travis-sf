@@ -1,15 +1,26 @@
 language: minimal
 services:
     - docker
-stages:
-  - name: deploy
-    if: branch == main AND type = push
-jobs:
-  include:
-    - stage: deploy
-      script:
-        - echo "$ARTIFACT_REGISTRY_KEY" | docker login -u _json_key_base64 --password-stdin https://us-west1-docker.pkg.dev
-        - export REPO=us-west1-docker.pkg.dev/kcs-biarca-infra1/travis-sf/travis-image
-        - docker build -f Dockerfile -t $REPO:build-$TRAVIS_BUILD_NUMBER -t $REPO:latest .
-        - docker push $REPO:build-$TRAVIS_BUILD_NUMBER
-        - docker push $REPO:latest
+
+before_install:
+  # Stop Travis immediately when any build command fails so it is easier to find the problem
+  - set -eo pipefail
+  # Add Google as a Docker mirror because Docker Hub download quotas cause build failures
+  - tmpdaemon=$(mktemp)
+  - sudo jq '."registry-mirrors" += ["https://mirror.gcr.io"]' /etc/docker/daemon.json > $tmpdaemon
+  - sudo mv $tmpdaemon /etc/docker/daemon.json
+  - sudo systemctl daemon-reload
+  - sudo systemctl restart docker
+  - docker system info
+
+script:
+  - export REPO=us-west1-docker.pkg.dev/kcs-biarca-infra1/travis-sf/travis-image
+  - docker build -f Dockerfile -t $REPO:build-$TRAVIS_BUILD_NUMBER -t $REPO:latest .
+
+after_success:
+  # Push Docker images for regular (not cron) main builds (credentials are only available on main)
+  - if [ -n "$ARTIFACT_REGISTRY_KEY" ] && [ "$TRAVIS_EVENT_TYPE" = "push" ]; then
+      echo "$ARTIFACT_REGISTRY_KEY" | docker login -u _json_key_base64 --password-stdin https://us-west1-docker.pkg.dev;
+      docker push $REPO:build-$TRAVIS_BUILD_NUMBER;
+      docker push $REPO:latest;
+    fi
