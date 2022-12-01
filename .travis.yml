@@ -2,6 +2,8 @@ language: minimal
 services:
     - docker
 
+dist: focal
+
 before_install:
   # Stop Travis immediately when any build command fails so it is easier to find the problem
   - set -eo pipefail
